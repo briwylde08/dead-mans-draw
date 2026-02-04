@@ -1,0 +1,16 @@
+{
+  "name": "pirate-cards-prover",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bash scripts/build_circuit.sh",
+    "keys": "bash scripts/gen_keys.sh",
+    "prove": "node scripts/prove.js"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.5"
+  }
+}

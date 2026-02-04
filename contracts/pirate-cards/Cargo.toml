@@ -1,0 +1,15 @@
+[package]
+name = "pirate-cards"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = "25.0.2"
+
+[dev-dependencies]
+soroban-sdk = { version = "25.0.2", features = ["testutils"] }
+mock-ohloss = { path = "../mock-ohloss" }

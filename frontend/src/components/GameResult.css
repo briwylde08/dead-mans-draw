@@ -1,0 +1,39 @@
+.game-result {
+  padding: 2rem 1.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.result-banner {
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+.result-banner h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.result-player {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.banner-win {
+  background: linear-gradient(135deg, rgba(42, 138, 74, 0.3), rgba(42, 138, 74, 0.1));
+  border: 1px solid rgba(42, 138, 74, 0.4);
+  color: #4ade80;
+}
+
+.banner-lose {
+  background: linear-gradient(135deg, rgba(179, 58, 58, 0.3), rgba(179, 58, 58, 0.1));
+  border: 1px solid rgba(179, 58, 58, 0.4);
+  color: #f87171;
+}
+
+.game-result .btn {
+  margin-top: 1rem;
+}

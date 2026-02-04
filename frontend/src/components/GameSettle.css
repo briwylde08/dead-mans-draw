@@ -1,0 +1,37 @@
+.game-settle {
+  padding: 2rem 1.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.game-settle h2 {
+  font-size: 1.3rem;
+  color: var(--color-gold);
+  margin-bottom: 0.5rem;
+}
+
+.settle-info {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  font-family: monospace;
+}
+
+.settle-status {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.settle-status p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.settle-proved {
+  text-align: center;
+}
+
+.settle-proved .btn {
+  margin-top: 1rem;
+}

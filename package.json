@@ -1,0 +1,16 @@
+{
+  "name": "pirate-zk-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "setup": "bun run build && bun run deploy && bun run bindings",
+    "build": "bun scripts/build.ts",
+    "deploy": "bun scripts/deploy.ts",
+    "bindings": "bun scripts/bindings.ts",
+    "dev": "cd frontend && bun run dev",
+    "test": "cargo test",
+    "circuit:build": "cd prover && bash scripts/build_circuit.sh",
+    "circuit:keys": "cd prover && bash scripts/gen_keys.sh",
+    "circuit:prove": "cd prover && node scripts/prove.js"
+  }
+}

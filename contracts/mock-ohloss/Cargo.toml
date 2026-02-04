@@ -1,0 +1,14 @@
+[package]
+name = "mock-ohloss"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = "25.0.2"
+
+[dev-dependencies]
+soroban-sdk = { version = "25.0.2", features = ["testutils"] }
