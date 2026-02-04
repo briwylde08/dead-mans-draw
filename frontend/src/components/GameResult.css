@@ -23,15 +23,15 @@
 }
 
 .banner-win {
-  background: linear-gradient(135deg, rgba(42, 138, 74, 0.3), rgba(42, 138, 74, 0.1));
-  border: 1px solid rgba(42, 138, 74, 0.4);
-  color: #4ade80;
+  background: linear-gradient(135deg, rgba(90, 154, 106, 0.2), rgba(90, 154, 106, 0.06));
+  border: 1px solid rgba(90, 154, 106, 0.35);
+  color: var(--color-green);
 }
 
 .banner-lose {
-  background: linear-gradient(135deg, rgba(179, 58, 58, 0.3), rgba(179, 58, 58, 0.1));
-  border: 1px solid rgba(179, 58, 58, 0.4);
-  color: #f87171;
+  background: linear-gradient(135deg, rgba(176, 56, 56, 0.2), rgba(176, 56, 56, 0.06));
+  border: 1px solid rgba(176, 56, 56, 0.35);
+  color: var(--color-red);
 }
 
 .game-result .btn {

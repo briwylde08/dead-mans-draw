@@ -1,19 +1,18 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import ConnectWallet from "./components/ConnectWallet";
 import GameLobby from "./components/GameLobby";
-import SeedReveal from "./components/SeedReveal";
+import WaitingRoom from "./components/WaitingRoom";
 import GameBoard from "./components/GameBoard";
 import GameSettle from "./components/GameSettle";
 import GameResult from "./components/GameResult";
 
 const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || "";
 
-// Stages: idle -> lobby -> seed_committed -> revealed -> playing -> settling -> result
+// Stages: idle -> lobby -> waiting -> playing -> settling -> result
 const STAGES = {
   IDLE: "idle",
   LOBBY: "lobby",
-  SEED_COMMITTED: "seed_committed",
-  REVEALED: "revealed",
+  WAITING: "waiting",
   PLAYING: "playing",
   SETTLING: "settling",
   RESULT: "result",
@@ -36,10 +35,11 @@ export default function App() {
 
   const handleGameAction = useCallback((action) => {
     setGameState(action);
-    setStage(STAGES.SEED_COMMITTED);
+    setStage(STAGES.WAITING);
   }, []);
 
-  const handleRevealed = useCallback(() => {
+  const handleWaitingReady = useCallback(({ opponentSeed }) => {
+    setGameState((prev) => ({ ...prev, opponentSeed }));
     setStage(STAGES.PLAYING);
   }, []);
 
@@ -59,17 +59,47 @@ export default function App() {
     setStage(STAGES.LOBBY);
   }, []);
 
+  const handleDisconnect = useCallback(() => {
+    setPublicKey(null);
+    setGameState(null);
+    setResult(null);
+    setStage(STAGES.IDLE);
+  }, []);
+
+  const [copied, setCopied] = useState(false);
+  const copyTimeout = useRef(null);
+
+  const handleCopyAddress = useCallback(() => {
+    if (!publicKey) return;
+    navigator.clipboard.writeText(publicKey).then(() => {
+      setCopied(true);
+      if (copyTimeout.current) clearTimeout(copyTimeout.current);
+      copyTimeout.current = setTimeout(() => setCopied(false), 1500);
+    });
+  }, [publicKey]);
+
   return (
     <div className="app">
       {publicKey && (
         <div className="wallet-bar">
-          <span className="wallet-address">{shortAddr}</span>
+          <span className="wallet-address" onClick={handleCopyAddress} title="Click to copy full address">
+            {copied ? "Copied!" : shortAddr}
+          </span>
+          <button className="btn btn-ghost" onClick={handleDisconnect}>
+            Disconnect
+          </button>
         </div>
       )}
 
-      <h1 className="app-title">Pirate Cards</h1>
+      <h1 className="app-title">
+        <span className="title-icon">&#x2620;</span>{" "}
+        <span className="title-dead">Dead</span>{" "}
+        <span className="title-mans">Man&rsquo;s</span>{" "}
+        <span className="title-draw">Draw</span>{" "}
+        <span className="title-icon">&#x2620;</span>
+      </h1>
       <p className="app-subtitle">
-        Commit. Reveal. Prove. No quarter given.
+        The plank's right there. And somebody's swimming home.
       </p>
 
       {!CONTRACT_ID && stage !== STAGES.IDLE && (
@@ -90,12 +120,12 @@ export default function App() {
         />
       )}
 
-      {stage === STAGES.SEED_COMMITTED && gameState && (
-        <SeedReveal
+      {stage === STAGES.WAITING && gameState && (
+        <WaitingRoom
           contractId={CONTRACT_ID}
           publicKey={publicKey}
           gameState={gameState}
-          onRevealed={handleRevealed}
+          onReady={handleWaitingReady}
         />
       )}
 

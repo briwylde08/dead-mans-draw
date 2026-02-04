@@ -19,13 +19,13 @@ async function getPoseidon() {
   return poseidonInstance;
 }
 
-export const CARD_TYPE_NAMES = ["Sails", "Cannon", "Cutlass", "Black Spot"];
-export const CARD_SYMBOLS = ["\u25B2", "\u25A0", "\u2571", "\u25CF"];
+export const CARD_TYPE_NAMES = ["Rum", "Skull", "Backstabber", "Black Spot"];
+export const CARD_SYMBOLS = ["\u{1F943}", "\u2620", "\u2694", "\u25CF"];
 
 export function cardType(c) {
-  if (c < 8) return 0;  // Sails  (Triangle)
-  if (c < 16) return 1; // Cannon  (Square)
-  if (c < 24) return 2; // Cutlass (Line)
+  if (c < 8) return 0;  // Rum
+  if (c < 16) return 1; // Skull
+  if (c < 24) return 2; // Cutlass
   return 3;             // Black Spot
 }
 

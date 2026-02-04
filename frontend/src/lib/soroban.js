@@ -14,6 +14,7 @@ import {
   BASE_FEE,
   xdr,
   nativeToScVal,
+  scValToNative,
   Address,
   rpc,
 } from "@stellar/stellar-sdk";
@@ -196,4 +197,33 @@ export async function getGame(contractId, sessionId, publicKey) {
     return simResponse.result.retval;
   }
   return null;
+}
+
+/**
+ * Query game state and return a parsed JS object.
+ * Returns null if game not found.
+ */
+export async function getGameParsed(contractId, sessionId, publicKey) {
+  const scVal = await getGame(contractId, sessionId, publicKey);
+  if (!scVal) return null;
+
+  const native = scValToNative(scVal);
+
+  const toHex = (buf) =>
+    Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+  const isZero = (buf) => new Uint8Array(buf).every((b) => b === 0);
+
+  return {
+    player1: native.player1,
+    player2: native.player2,
+    phase: Number(native.phase),
+    winner: Number(native.winner),
+    seed1Hex: toHex(native.seed1),
+    seed2Hex: toHex(native.seed2),
+    seed1Revealed: !isZero(native.seed1),
+    seed2Revealed: !isZero(native.seed2),
+  };
 }

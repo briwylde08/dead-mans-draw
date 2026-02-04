@@ -75,8 +75,8 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
   if (!mode) {
     return (
       <div className="game-lobby">
-        <h2>Pirate Cards</h2>
-        <p className="lobby-subtitle">Choose yer path, captain.</p>
+        <h2>Choose Yer Path</h2>
+        <p className="lobby-subtitle">What'll it be, captain?</p>
         <div className="lobby-buttons">
           <button className="btn btn-primary" onClick={() => setMode("create")}>
             Create Game
@@ -99,7 +99,7 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
           type="number"
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
-          placeholder="e.g. 42"
+          placeholder="e.g., 42, 101, 2002"
           disabled={loading}
         />
       </div>
@@ -110,7 +110,7 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
           onClick={mode === "create" ? handleCreate : handleJoin}
           disabled={loading || !sessionId}
         >
-          {loading ? "Submitting..." : mode === "create" ? "Create & Commit Seed" : "Join & Commit Seed"}
+          {loading ? "Submitting..." : mode === "create" ? "Create" : "Join"}
         </button>
         <button className="btn btn-ghost" onClick={() => setMode(null)} disabled={loading}>
           Back
@@ -120,11 +120,7 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
       {error && <p className="error-text">{error}</p>}
 
       <p className="lobby-note">
-        {mode === "create"
-          ? "Share the Session ID with your opponent so they can join."
-          : "Enter the Session ID shared by the game creator."}
-        {" "}A random seed will be generated and committed on-chain.
-        Keep this browser tab open — you'll need the seed to reveal later.
+        Keep this browser tab open until the game is finished.
       </p>
     </div>
   );

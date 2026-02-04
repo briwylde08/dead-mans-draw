@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   simulateFullGame,
   CARD_TYPE_NAMES,
@@ -7,39 +7,46 @@ import {
 import "./GameBoard.css";
 
 export default function GameBoard({ gameState, onGameComplete }) {
-  const { sessionId, seed, playerRole } = gameState;
-  const [opponentSeedInput, setOpponentSeedInput] = useState("");
+  const { sessionId, seed, playerRole, opponentSeed } = gameState;
   const [game, setGame] = useState(null);
   const [roundIndex, setRoundIndex] = useState(0);
   const [phase, setPhase] = useState("ready"); // ready | drawn | revealed
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [storedOpponentSeed, setStoredOpponentSeed] = useState(null);
+  const initRef = useRef(false);
+  const revealTimer = useRef(null);
 
-  const handleStart = async () => {
-    if (!opponentSeedInput.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const trimmed = opponentSeedInput.trim().replace(/^0x/i, "");
-      const oppSeed = BigInt("0x" + trimmed);
-      setStoredOpponentSeed(oppSeed);
+  const REVEAL_DELAY = 2500;
 
-      const seed1 = playerRole === 1 ? seed : oppSeed;
-      const seed2 = playerRole === 2 ? seed : oppSeed;
+  // Auto-start game simulation when component mounts with opponent seed
+  useEffect(() => {
+    if (initRef.current || !opponentSeed) return;
+    initRef.current = true;
 
-      const result = await simulateFullGame(seed1, seed2, BigInt(sessionId));
-      setGame(result);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const seed1 = playerRole === 1 ? seed : opponentSeed;
+    const seed2 = playerRole === 2 ? seed : opponentSeed;
+
+    simulateFullGame(seed1, seed2, BigInt(sessionId))
+      .then((result) => setGame(result))
+      .catch((err) => setError(err.message));
+  }, [opponentSeed, seed, playerRole, sessionId]);
+
+  // Cleanup reveal timer on unmount
+  useEffect(() => {
+    return () => {
+      if (revealTimer.current) clearTimeout(revealTimer.current);
+    };
+  }, []);
+
+  const handleDrawYourCard = () => {
+    setPhase("drawn");
+
+    // Skip delay if this round ends the game (blackspot or final score)
+    const delay = round?.gameOver ? 0 : REVEAL_DELAY;
+
+    revealTimer.current = setTimeout(() => {
+      setPhase("revealed");
+    }, delay);
   };
-
-  const handleDrawYourCard = () => setPhase("drawn");
-
-  const handleRevealOpponent = () => setPhase("revealed");
 
   const handleNextRound = () => {
     setRoundIndex((i) => i + 1);
@@ -47,7 +54,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
   };
 
   const handleSettle = () => {
-    onGameComplete({ opponentSeed: storedOpponentSeed });
+    onGameComplete({ opponentSeed });
   };
 
   // Current round data
@@ -84,7 +91,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
   // History: show fully-revealed rounds only
   const historyEnd = phase === "revealed" ? roundIndex + 1 : roundIndex;
 
-  // --- Seed input form ---
+  // --- Loading / error state ---
   if (!game) {
     return (
       <div className="game-board">
@@ -92,40 +99,14 @@ export default function GameBoard({ gameState, onGameComplete }) {
         <p className="board-info">
           Session #{sessionId} &mdash; Player {playerRole}
         </p>
-
-        <p className="board-note">
-          Both seeds are revealed on-chain. Enter your opponent&rsquo;s seed to
-          shuffle the deck and start drawing.
-        </p>
-
-        <div className="form-group">
-          <label htmlFor="opp-seed">Opponent&rsquo;s Revealed Seed (hex)</label>
-          <input
-            id="opp-seed"
-            type="text"
-            value={opponentSeedInput}
-            onChange={(e) => setOpponentSeedInput(e.target.value)}
-            placeholder="00abcdef..."
-            disabled={loading}
-          />
-        </div>
-
-        <button
-          className="btn btn-primary"
-          onClick={handleStart}
-          disabled={loading || !opponentSeedInput.trim()}
-        >
-          {loading ? "Shuffling deck..." : "Shuffle & Play"}
-        </button>
-
-        {error && <p className="error-text">{error}</p>}
-
-        <p className="board-hint">
-          Query seeds with:{" "}
-          <code>
-            stellar contract invoke ... -- get_game --session_id {sessionId}
-          </code>
-        </p>
+        {error ? (
+          <p className="error-text">{error}</p>
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <div className="spinner" />
+            <p className="board-note">Shuffling the deck...</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -146,7 +127,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
         </div>
         <div className="score-vs">vs</div>
         <div className="score-side">
-          <span className="score-label">Opponent</span>
+          <span className="score-label">Adversary</span>
           <span className="score-value">{oppScore}</span>
         </div>
       </div>
@@ -168,7 +149,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
             effectiveWinner !== playerRole
           }
           waiting={phase === "drawn"}
-          label="Opponent"
+          label="Adversary"
         />
       </div>
 
@@ -178,7 +159,11 @@ export default function GameBoard({ gameState, onGameComplete }) {
           You drew <strong>{CARD_TYPE_NAMES[yourType]}</strong>
           {yourType === 3
             ? "... the mark of death!"
-            : ". What did your opponent draw?"}
+            : ""}
+          <br />
+          <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+            Waitin&rsquo; on the other hand&hellip;
+          </span>
         </div>
       )}
 
@@ -194,13 +179,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
       <div className="board-actions">
         {phase === "ready" && (
           <button className="btn btn-primary" onClick={handleDrawYourCard}>
-            {roundIndex === 0 ? "Draw Yer Card" : "Draw Yer Card"}
-          </button>
-        )}
-
-        {phase === "drawn" && (
-          <button className="btn btn-secondary" onClick={handleRevealOpponent}>
-            Flip Opponent&rsquo;s Card
+            Draw Yer Card
           </button>
         )}
 
@@ -288,7 +267,8 @@ function CardSlot({ type, revealed, isWinner, waiting, label }) {
   }
 
   const isBlack = type === 3;
-  const typeClass = ["sails", "cannon", "cutlass", "blackspot"][type];
+  const typeClass = ["rum", "skull", "cutlass", "blackspot"][type];
+  const cardImage = ["/images/rum1.png", "/images/skull1.png", "/images/cutlass1.png", null][type];
 
   return (
     <div
@@ -296,8 +276,11 @@ function CardSlot({ type, revealed, isWinner, waiting, label }) {
         isWinner ? "card-winner" : ""
       } ${isBlack ? "card-death" : ""}`}
     >
-      <div className="card-corner">{CARD_SYMBOLS[type]}</div>
-      <div className="card-center-symbol">{CARD_SYMBOLS[type]}</div>
+      {cardImage ? (
+        <img className="card-image" src={cardImage} alt={CARD_TYPE_NAMES[type]} />
+      ) : (
+        <div className="card-center-symbol">{CARD_SYMBOLS[type]}</div>
+      )}
       <div className="card-type-name">{CARD_TYPE_NAMES[type]}</div>
       <div className="card-player-label">{label}</div>
     </div>
@@ -334,7 +317,7 @@ function RoundResult({ round, roundNum, playerRole }) {
       {CARD_TYPE_NAMES[yourType]} vs {CARD_TYPE_NAMES[oppTypeVal]}
       {" — "}
       <span className={youWon ? "result-you-win" : "result-opp-win"}>
-        {youWon ? "You win!" : "Opponent wins"}
+        {youWon ? "You win!" : "Adversary wins"}
       </span>
     </div>
   );

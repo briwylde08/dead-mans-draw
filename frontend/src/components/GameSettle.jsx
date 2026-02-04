@@ -1,14 +1,47 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { generateProof } from "../lib/prover";
-import { settleGame } from "../lib/soroban";
+import { settleGame, getGameParsed } from "../lib/soroban";
 import "./GameSettle.css";
+
+const POLL_INTERVAL = 4000;
 
 export default function GameSettle({ contractId, publicKey, gameState, onSettled }) {
   const { sessionId, seed, playerRole, opponentSeed } = gameState;
-  const [stage, setStage] = useState("ready"); // ready | proving | proved | settling | error
+  const [stage, setStage] = useState("ready"); // ready | proving | proved | settling | settled_by_opponent | error
   const [proofData, setProofData] = useState(null);
   const [error, setError] = useState(null);
   const autoStarted = useRef(false);
+  const pollRef = useRef(null);
+  const settledRef = useRef(false);
+
+  // Poll for opponent settlement
+  const pollSettlement = useCallback(async () => {
+    if (settledRef.current) return;
+    try {
+      const game = await getGameParsed(contractId, sessionId, publicKey);
+      if (!game || settledRef.current) return;
+      if (game.winner !== 0) {
+        settledRef.current = true;
+        if (pollRef.current) clearInterval(pollRef.current);
+        setStage("settled_by_opponent");
+        // Auto-transition to results after a brief pause
+        setTimeout(() => {
+          onSettled({ winner: game.winner, gameLog: proofData?.gameLog ?? null });
+        }, 3000);
+      }
+    } catch {
+      // Silently retry
+    }
+  }, [contractId, sessionId, publicKey, onSettled, proofData]);
+
+  // Start polling on mount
+  useEffect(() => {
+    pollRef.current = setInterval(pollSettlement, POLL_INTERVAL);
+    pollSettlement();
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [pollSettlement]);
 
   const handleGenerateProof = async () => {
     setStage("proving");
@@ -61,9 +94,37 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
         publicKey
       );
 
-      if (!result.success) throw new Error(result.error);
+      if (!result.success) {
+        // Check if game was already settled by opponent
+        if (result.error && (result.error.includes("AlreadySettled") || result.error.includes("#"))) {
+          const game = await getGameParsed(contractId, sessionId, publicKey);
+          if (game && game.winner !== 0) {
+            settledRef.current = true;
+            if (pollRef.current) clearInterval(pollRef.current);
+            setStage("settled_by_opponent");
+            setTimeout(() => {
+              onSettled({ winner: game.winner, gameLog: proofData.gameLog });
+            }, 3000);
+            return;
+          }
+        }
+        throw new Error(result.error);
+      }
+      settledRef.current = true;
+      if (pollRef.current) clearInterval(pollRef.current);
       onSettled({ winner: proofData.winner, gameLog: proofData.gameLog });
     } catch (err) {
+      // Could be already settled
+      const game = await getGameParsed(contractId, sessionId, publicKey).catch(() => null);
+      if (game && game.winner !== 0) {
+        settledRef.current = true;
+        if (pollRef.current) clearInterval(pollRef.current);
+        setStage("settled_by_opponent");
+        setTimeout(() => {
+          onSettled({ winner: game.winner, gameLog: proofData.gameLog });
+        }, 3000);
+        return;
+      }
       setError(err.message);
       setStage("error");
     }
@@ -118,6 +179,13 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
         <div className="settle-status">
           <div className="spinner" />
           <p>Signing with Freighter & submitting to Soroban...</p>
+        </div>
+      )}
+
+      {stage === "settled_by_opponent" && (
+        <div className="settle-status">
+          <p className="status-ok">Proof has been submitted on-chain by your adversary.</p>
+          <p className="settle-hint">Redirecting to results...</p>
         </div>
       )}
 

@@ -1,22 +1,43 @@
-:root {
-  --color-bg: #0d0a14;
-  --color-bg-card: rgba(30, 20, 45, 0.9);
-  --color-bg-card-hover: rgba(40, 28, 60, 0.95);
-  --color-gold: #c9a227;
-  --color-gold-light: #e6c744;
-  --color-gold-dark: #8b7320;
-  --color-purple: #5a1a8a;
-  --color-purple-light: #7a3aaa;
-  --color-red: #b33a3a;
-  --color-green: #2a8a4a;
-  --color-text: rgba(255, 252, 245, 0.88);
-  --color-text-muted: rgba(255, 250, 240, 0.55);
-  --color-border: rgba(212, 175, 55, 0.2);
-  --color-border-hover: rgba(212, 175, 55, 0.5);
-  --radius: 8px;
-  --transition: all 0.3s ease;
+/* ══════════════════════════════════════════
+   DEAD MAN'S DRAW — Brass + Charcoal + Bone
+   ══════════════════════════════════════════ */
 
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+:root {
+  /* Backgrounds */
+  --color-bg: #0E0E11;
+  --color-bg-card: #1C1B20;
+  --color-bg-card-hover: #24232A;
+
+  /* Borders */
+  --color-border: #3A3842;
+  --color-border-hover: #504E58;
+
+  /* Primary — Brass */
+  --color-gold: #C9A24D;
+  --color-gold-light: #D4B262;
+  --color-gold-dark: #B88E35;
+
+  /* Text — Bone */
+  --color-text: #D8D2C4;
+  --color-text-muted: #A9A39A;
+  --color-bone: #E6DDC8;
+
+  /* Status */
+  --color-red: #B03838;
+  --color-green: #5A9A6A;
+
+  /* Effects */
+  --color-shadow: rgba(0, 0, 0, 0.45);
+  --color-focus-ring: rgba(201, 162, 77, 0.4);
+
+  /* Radii */
+  --radius: 8px;
+  --radius-btn: 10px;
+
+  /* Timing */
+  --transition: all 0.25s ease;
+
+  font-family: 'IM Fell English', serif;
   color: var(--color-text);
   background: var(--color-bg);
 }
@@ -29,10 +50,15 @@
 
 body {
   min-height: 100vh;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   background-image:
-    radial-gradient(ellipse at 20% 50%, rgba(90, 26, 138, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(201, 162, 39, 0.08) 0%, transparent 40%);
+    radial-gradient(circle at top, rgba(201, 162, 77, 0.10), transparent 45%),
+    radial-gradient(ellipse at center, rgba(14, 14, 17, 0.55), #0E0E11 75%),
+    url('/images/pirate-ship.png');
+  background-size: auto, auto, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .app {
@@ -41,21 +67,74 @@ body {
   padding: 2rem 1.5rem;
 }
 
+/* ── Title ── */
+
 .app-title {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
   text-align: center;
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--color-gold);
-  margin-bottom: 0.25rem;
-  letter-spacing: 0.02em;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.4rem, 9vw, 5rem);
+  font-weight: 500;
+  color: var(--color-bone);
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.08em;
+  text-transform: capitalize;
+  line-height: 1.15;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  padding: 0.5rem 1.5rem 0.6rem;
+  border-top: 2px solid rgba(230, 221, 200, 0.3);
+  border-bottom: 2px solid rgba(230, 221, 200, 0.3);
+}
+
+.app-title::before,
+.app-title::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(70%, 420px);
+  height: 1px;
+  background: rgba(230, 221, 200, 0.12);
+}
+
+.app-title::before {
+  top: -5px;
+}
+
+.app-title::after {
+  bottom: -5px;
+}
+
+.title-dead,
+.title-mans,
+.title-draw {
+  display: inline-block;
+}
+
+.title-draw {
+  white-space: nowrap;
+}
+
+.title-icon {
+  display: inline-block;
+  filter: grayscale(0.4) brightness(0.8);
+  opacity: 0.7;
 }
 
 .app-subtitle {
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 2rem;
+  font-family: 'IM Fell English', serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  margin-top: 4.5rem;
+  margin-bottom: 4rem;
 }
+
+/* ── Wallet bar ── */
 
 .wallet-bar {
   display: flex;
@@ -64,18 +143,44 @@ body {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 2px solid rgba(230, 221, 200, 0.25);
   border-radius: var(--radius);
   font-size: 0.85rem;
+  position: relative;
+}
+
+.wallet-bar::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgba(230, 221, 200, 0.1);
+  border-radius: calc(var(--radius) + 4px);
+  pointer-events: none;
+}
+
+.wallet-bar::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(230, 221, 200, 0.12);
+  border-radius: calc(var(--radius) - 2px);
+  pointer-events: none;
 }
 
 .wallet-address {
   color: var(--color-gold-light);
   font-family: monospace;
+  cursor: pointer;
+  transition: var(--transition);
 }
 
-/* Buttons */
+.wallet-address:hover {
+  color: var(--color-bone);
+}
+
+/* ── Buttons ── */
+
 .btn {
   display: inline-block;
   padding: 0.65rem 1.4rem;
@@ -83,49 +188,74 @@ body {
   font-size: 0.95rem;
   font-weight: 600;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-btn);
   cursor: pointer;
   transition: var(--transition);
   text-decoration: none;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-gold-dark), var(--color-gold));
-  color: #0d0a14;
+  background: var(--color-gold);
+  color: var(--color-bg);
+  box-shadow:
+    0 2px 6px var(--color-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
-  box-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+  background: var(--color-gold-dark);
+  box-shadow:
+    0 2px 12px var(--color-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #A6811E;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .btn-secondary {
-  background: var(--color-bg-card);
+  background: var(--color-bg-card-hover);
   color: var(--color-gold-light);
   border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
 .btn-secondary:hover:not(:disabled) {
   border-color: var(--color-border-hover);
-  box-shadow: 0 0 15px rgba(201, 162, 39, 0.15);
+  background: #2C2B32;
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.btn-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--color-text-muted);
   padding: 0.5rem 1rem;
+  border: 1px solid rgba(230, 221, 200, 0.25);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  color: var(--color-text);
+  color: var(--color-bone);
+  border-color: rgba(230, 221, 200, 0.45);
 }
 
-/* Forms */
+/* ── Forms ── */
+
 .form-group {
   margin-bottom: 1rem;
 }
@@ -141,7 +271,7 @@ body {
 .form-group input {
   width: 100%;
   padding: 0.6rem 0.8rem;
-  background: rgba(20, 10, 30, 0.8);
+  background: var(--color-bg-card-hover);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   color: var(--color-text);
@@ -153,14 +283,21 @@ body {
 .form-group input:focus {
   outline: none;
   border-color: var(--color-gold);
-  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.form-group input:focus-visible {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .form-group input::placeholder {
   color: var(--color-text-muted);
 }
 
-/* Status text */
+/* ── Status text ── */
+
 .error-text {
   color: var(--color-red);
   font-size: 0.85rem;
@@ -173,7 +310,8 @@ body {
   margin-bottom: 0.75rem;
 }
 
-/* Spinner */
+/* ── Spinner ── */
+
 .spinner {
   width: 32px;
   height: 32px;
@@ -188,11 +326,12 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Game log */
+/* ── Game log ── */
+
 .game-log {
   margin: 1rem 0;
   padding: 0.75rem;
-  background: rgba(20, 10, 30, 0.6);
+  background: var(--color-bg-card-hover);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 0.8rem;
@@ -209,7 +348,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .log-entry:last-child {
@@ -232,4 +371,15 @@ body {
   color: var(--color-gold-light);
   font-family: monospace;
   font-weight: 600;
+}
+
+/* ── Global focus-visible ── */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
