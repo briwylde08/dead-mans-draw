@@ -1,4 +1,4 @@
-# Dead Man's Draw
+# Dead Man's Draw ☠
 
 **The plank's right there. And somebody's swimming home.**
 
