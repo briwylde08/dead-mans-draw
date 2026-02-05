@@ -111,7 +111,6 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
           <ul>
             <li> - The game ends immediately.</li>
             <li> - Ye lose.</li>
-            <li> - No appeals. No rematch. Everyone knows what it means.</li>
           </ul>
 
           <h3>{"\uD83C\uDFC6"} Winning the Game</h3>

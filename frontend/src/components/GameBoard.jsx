@@ -18,8 +18,11 @@ const MATCHUP_FLAVOR = {
   "2-2": "Both were waiting for the other to turn around.",
 };
 
-function getRoundFlavor(type1, type2) {
-  if (type1 === 3 || type2 === 3) return "That\u2019s unfortunate.";
+function getRoundFlavor(type1, type2, playerRole) {
+  if (type1 === 3 || type2 === 3) {
+    const youDrew = (playerRole === 1 && type1 === 3) || (playerRole === 2 && type2 === 3);
+    return youDrew ? "That\u2019s unfortunate." : "That\u2019s fortunate.";
+  }
   const key1 = `${type1}-${type2}`;
   const key2 = `${type2}-${type1}`;
   return MATCHUP_FLAVOR[key1] || MATCHUP_FLAVOR[key2] || "";
@@ -259,7 +262,7 @@ export default function GameBoard({ gameState, onGameComplete, relay, onRelayMes
 
       {/* Flavor text */}
       {bothDrawn && round && (
-        <p className="round-flavor">{getRoundFlavor(round.type1, round.type2)}</p>
+        <p className="round-flavor">{getRoundFlavor(round.type1, round.type2, playerRole)}</p>
       )}
 
       {/* Actions */}

@@ -66,7 +66,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
 
       const result = await generateProof(seed1, seed2, BigInt(sessionId));
       setProofData(result);
-      setStage("proved");
+      await submitProof(result);
     } catch (err) {
       setError(err.message);
       setStage("error");
@@ -81,16 +81,17 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSettle = async () => {
-    if (!proofData) return;
+  const submitProof = async (data) => {
+    const pd = data || proofData;
+    if (!pd) return;
     setStage("settling");
     setError(null);
     try {
       const result = await settleGame(
         contractId,
         sessionId,
-        proofData.proof,
-        proofData.publicInputs,
+        pd.proof,
+        pd.publicInputs,
         publicKey
       );
 
@@ -103,7 +104,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
             if (pollRef.current) clearInterval(pollRef.current);
             setStage("settled_by_opponent");
             setTimeout(() => {
-              onSettled({ winner: game.winner, gameLog: proofData.gameLog });
+              onSettled({ winner: game.winner, gameLog: pd.gameLog });
             }, 3000);
             return;
           }
@@ -112,7 +113,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
       }
       settledRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
-      onSettled({ winner: proofData.winner, gameLog: proofData.gameLog });
+      onSettled({ winner: pd.winner, gameLog: pd.gameLog });
     } catch (err) {
       // Could be already settled
       const game = await getGameParsed(contractId, sessionId, publicKey).catch(() => null);
@@ -121,7 +122,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
         if (pollRef.current) clearInterval(pollRef.current);
         setStage("settled_by_opponent");
         setTimeout(() => {
-          onSettled({ winner: game.winner, gameLog: proofData.gameLog });
+          onSettled({ winner: game.winner, gameLog: pd.gameLog });
         }, 3000);
         return;
       }
@@ -153,23 +154,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
       {stage === "proved" && proofData && (
         <div className="settle-proved">
           <p className="status-ok">Proof generated. Winner: Player {proofData.winner}</p>
-          {proofData.gameLog && (
-            <div className="game-log">
-              <h3>Game Replay</h3>
-              {proofData.gameLog.map((entry, i) => (
-                <div key={i} className="log-entry">
-                  <span className="log-round">
-                    {entry.round === "end" ? "End" : `R${entry.round}`}
-                  </span>
-                  <span className="log-result">{entry.result}</span>
-                  {entry.score && (
-                    <span className="log-score">{entry.score[0]}-{entry.score[1]}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <button className="btn btn-primary" onClick={handleSettle}>
+          <button className="btn btn-primary" onClick={() => submitProof()}>
             Submit Proof On-Chain
           </button>
         </div>
@@ -192,7 +177,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
       {stage === "error" && (
         <>
           <p className="error-text">{error}</p>
-          <button className="btn btn-ghost" onClick={() => setStage("ready")}>
+          <button className="btn btn-ghost" onClick={proofData ? () => submitProof() : handleGenerateProof}>
             Try Again
           </button>
         </>

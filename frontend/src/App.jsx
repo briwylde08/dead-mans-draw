@@ -135,7 +135,7 @@ export default function App() {
         <span className="title-icon">&#x2620;</span>
       </h1>
       <p className="app-subtitle">
-        The plank's right there. And somebody's swimming home.
+        The plank's ready. And someone's takin' the long swim.
       </p>
 
       {!CONTRACT_ID && stage !== STAGES.IDLE && (
