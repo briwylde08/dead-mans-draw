@@ -50,7 +50,11 @@ export default function GameLobby({ contractId, publicKey, onGameAction, onActiv
         playerRole: 1,
       });
     } catch (err) {
-      setError(err.message);
+      if (err.message && (err.message.includes("SessionExists") || err.message.includes("#2"))) {
+        setError("Sorry, that number's been used. Please pick a new session ID.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
