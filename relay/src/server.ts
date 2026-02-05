@@ -96,6 +96,13 @@ export default class RelayServer implements Party.Server {
       return;
     }
 
+    // Clear event log on MATCHED (matchmaking complete, clean slate for next pair)
+    if (data.type === "MATCHED") {
+      await this.room.storage.put("events", []);
+      this.room.broadcast(raw, [sender.id]);
+      return;
+    }
+
     // Store event for reconnect replay
     const events =
       (await this.room.storage.get<string[]>("events")) ?? [];
@@ -108,6 +115,15 @@ export default class RelayServer implements Party.Server {
 
   async onClose(connection: Party.Connection) {
     this.rateLimits.delete(connection.id);
+
+    // If room is now empty, clear event log (prevents stale matchmaking events)
+    const remaining = [...this.room.getConnections()].filter(
+      (c) => c.id !== connection.id
+    );
+    if (remaining.length === 0) {
+      await this.room.storage.put("events", []);
+    }
+
     this.room.broadcast(
       JSON.stringify({
         type: "PLAYER_LEFT",

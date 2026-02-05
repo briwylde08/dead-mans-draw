@@ -43,28 +43,49 @@ export function startMatchmaking(publicKey, callbacks) {
     }
 
     if (data.type === "STATE_SNAPSHOT") {
-      const hostingEvent = (data.events || [])
-        .map((e) => {
-          try { return typeof e === "string" ? JSON.parse(e) : e; } catch { return null; }
-        })
-        .find(
-          (e) =>
-            e &&
-            e.type === "HOSTING" &&
-            e.publicKey !== publicKey &&
-            Date.now() - (e.ts || 0) < STALE_THRESHOLD
-        );
+      const events = (data.events || []).map((e) => {
+        try { return typeof e === "string" ? JSON.parse(e) : e; } catch { return null; }
+      }).filter(Boolean);
 
+      // Check for a full HOSTING message (game already created on-chain)
+      const hostingEvent = events.find(
+        (e) =>
+          e.type === "HOSTING" &&
+          e.publicKey !== publicKey &&
+          Date.now() - (e.ts || 0) < STALE_THRESHOLD
+      );
       if (hostingEvent) {
         becomeJoiner(hostingEvent);
-      } else {
-        hostDecisionTimer = setTimeout(() => {
-          if (!role && !cancelled) becomeHost();
-        }, HOST_DECISION_DELAY);
+        return;
       }
+
+      // Check for a HOSTING_CLAIM (someone is creating a game, wait for full HOSTING)
+      const claimEvent = events.find(
+        (e) =>
+          e.type === "HOSTING_CLAIM" &&
+          e.publicKey !== publicKey &&
+          Date.now() - (e.ts || 0) < STALE_THRESHOLD
+      );
+      if (claimEvent) {
+        role = "waiting_for_host";
+        return;
+      }
+
+      // No one here — start timer to become host
+      hostDecisionTimer = setTimeout(() => {
+        if (!role && !cancelled) becomeHost();
+      }, HOST_DECISION_DELAY);
       return;
     }
 
+    // Another player claimed host role — stop our timer and wait
+    if (data.type === "HOSTING_CLAIM" && !role && data.publicKey !== publicKey) {
+      clearTimeout(hostDecisionTimer);
+      role = "waiting_for_host";
+      return;
+    }
+
+    // Full HOSTING message — game is ready to join
     if (data.type === "HOSTING" && role !== "host" && data.publicKey !== publicKey) {
       if (Date.now() - (data.ts || 0) > STALE_THRESHOLD) return;
       clearTimeout(hostDecisionTimer);
@@ -77,7 +98,7 @@ export function startMatchmaking(publicKey, callbacks) {
       return;
     }
 
-    if (data.type === "PLAYER_LEFT" && role === "joiner") {
+    if (data.type === "PLAYER_LEFT" && (role === "joiner" || role === "waiting_for_host")) {
       callbacks.onError(new Error("Opponent disconnected"));
       return;
     }
@@ -97,6 +118,8 @@ export function startMatchmaking(publicKey, callbacks) {
 
   function becomeHost() {
     role = "host";
+    // Immediately broadcast claim so the other player stops their timer
+    sendMessage({ type: "HOSTING_CLAIM", publicKey, ts: Date.now() });
     callbacks.onHosting();
   }
 

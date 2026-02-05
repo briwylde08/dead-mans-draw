@@ -162,6 +162,7 @@ export default function App() {
           publicKey={publicKey}
           gameState={gameState}
           onReady={handleWaitingReady}
+          onCancel={handleNewGame}
         />
       )}
 

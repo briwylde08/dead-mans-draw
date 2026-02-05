@@ -4,7 +4,7 @@ import "./WaitingRoom.css";
 
 const POLL_INTERVAL = 3000;
 
-export default function WaitingRoom({ contractId, publicKey, gameState, onReady }) {
+export default function WaitingRoom({ contractId, publicKey, gameState, onReady, onCancel }) {
   const { sessionId, seed, playerRole } = gameState;
 
   // Stages: waiting_opponent | revealing | waiting_reveal | done
@@ -120,6 +120,14 @@ export default function WaitingRoom({ contractId, publicKey, gameState, onReady 
           <p className="error-text">{error}</p>
           <button className="btn btn-ghost" onClick={handleRetry}>
             Try Again
+          </button>
+        </div>
+      )}
+
+      {onCancel && (
+        <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+          <button className="btn btn-ghost" onClick={onCancel}>
+            Cancel
           </button>
         </div>
       )}
