@@ -5,7 +5,7 @@ import "./GameSettle.css";
 
 const POLL_INTERVAL = 4000;
 
-export default function GameSettle({ contractId, publicKey, gameState, onSettled }) {
+export default function GameSettle({ contractId, publicKey, gameState, onSettled, onActivity }) {
   const { sessionId, seed, playerRole, opponentSeed } = gameState;
   const [stage, setStage] = useState("ready"); // ready | proving | proved | settling | settled_by_opponent | error
   const [proofData, setProofData] = useState(null);
@@ -66,6 +66,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
 
       const result = await generateProof(seed1, seed2, BigInt(sessionId));
       setProofData(result);
+      if (onActivity) onActivity({ action: "Proof Generated", detail: `Winner: Player ${result.winner}` });
       await submitProof(result);
     } catch (err) {
       setError(err.message);
@@ -111,6 +112,7 @@ export default function GameSettle({ contractId, publicKey, gameState, onSettled
         }
         throw new Error(result.error);
       }
+      if (onActivity) onActivity({ action: "Game Settled", txHash: result.txHash });
       settledRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
       onSettled({ winner: pd.winner, gameLog: pd.gameLog });

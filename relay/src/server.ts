@@ -2,6 +2,7 @@ import type * as Party from "partykit/server";
 
 const MAX_ROOM_SIZE = 2;
 const MAX_MESSAGE_SIZE = 1024; // 1KB
+const MAX_EVENTS = 100;
 const RATE_LIMIT_WINDOW = 1000; // 1 second
 const RATE_LIMIT_MAX = 10; // messages per window
 
@@ -103,10 +104,13 @@ export default class RelayServer implements Party.Server {
       return;
     }
 
-    // Store event for reconnect replay
-    const events =
+    // Store event for reconnect replay (capped to prevent unbounded growth)
+    let events =
       (await this.room.storage.get<string[]>("events")) ?? [];
     events.push(raw);
+    if (events.length > MAX_EVENTS) {
+      events = events.slice(-MAX_EVENTS);
+    }
     await this.room.storage.put("events", events);
 
     // Relay to everyone except sender

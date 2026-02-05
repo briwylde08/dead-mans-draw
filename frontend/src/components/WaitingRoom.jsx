@@ -4,7 +4,7 @@ import "./WaitingRoom.css";
 
 const POLL_INTERVAL = 3000;
 
-export default function WaitingRoom({ contractId, publicKey, gameState, onReady, onCancel }) {
+export default function WaitingRoom({ contractId, publicKey, gameState, onReady, onCancel, onActivity }) {
   const { sessionId, seed, playerRole } = gameState;
 
   // Stages: waiting_opponent | revealing | waiting_reveal | done
@@ -34,6 +34,7 @@ export default function WaitingRoom({ contractId, publicKey, gameState, onReady,
         }
         throw new Error(result.error);
       }
+      if (onActivity) onActivity({ action: "Seed Revealed", txHash: result.txHash });
       setStage("waiting_reveal");
     } catch (err) {
       // Contract error 6 = AlreadyRevealed
@@ -45,7 +46,7 @@ export default function WaitingRoom({ contractId, publicKey, gameState, onReady,
       revealStarted.current = false;
       setStage("error");
     }
-  }, [contractId, sessionId, seedHex, publicKey]);
+  }, [contractId, sessionId, seedHex, publicKey, onActivity]);
 
   const pollGameState = useCallback(async () => {
     try {

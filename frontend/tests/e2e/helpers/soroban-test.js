@@ -1,33 +1,29 @@
 /**
- * Soroban transaction builder + submitter for the Pirate Cards contract.
+ * Soroban contract helpers for automated testing.
  *
- * All SDK imports come from a single "@stellar/stellar-sdk" entry point
- * (including rpc.Server) to avoid Vite bundling duplicate copies of
- * @stellar/stellar-base, which causes instanceof and XDR union mismatches.
+ * Mirrors src/lib/soroban.js but signs with Keypair instead of Freighter,
+ * so tests can run headlessly against the Stellar testnet.
  */
 
 import {
   Contract,
-  Transaction,
   TransactionBuilder,
   Networks,
   BASE_FEE,
+  Keypair,
   xdr,
   nativeToScVal,
   scValToNative,
   Address,
   rpc,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "./wallet";
 
-const RPC_URL = import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org:443";
+const RPC_URL = process.env.RPC_URL || "https://soroban-testnet.stellar.org:443";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 
 /**
  * Raw JSON-RPC helper for getTransaction. Avoids the SDK's automatic parsing
- * of resultMetaXdr (xdr.TransactionMeta.fromXDR) which throws "Bad union
- * switch: 4" when the testnet returns Protocol 22's TransactionMeta v4 that
- * older SDK XDR schemas don't recognise.
+ * of resultMetaXdr which throws on Protocol 22's TransactionMeta v4.
  */
 async function rawGetTransaction(hash) {
   const res = await fetch(RPC_URL, {
@@ -45,11 +41,12 @@ async function rawGetTransaction(hash) {
 }
 
 /**
- * Build, simulate, sign, and submit a Soroban transaction.
+ * Build, simulate, sign (with Keypair), and submit a Soroban transaction.
  */
-async function submitTx(contractId, method, args, publicKey) {
+async function submitTx(contractId, method, args, keypair) {
   const server = new rpc.Server(RPC_URL);
   const contract = new Contract(contractId);
+  const publicKey = keypair.publicKey();
   const account = await server.getAccount(publicKey);
 
   const tx = new TransactionBuilder(account, {
@@ -61,12 +58,9 @@ async function submitTx(contractId, method, args, publicKey) {
     .build();
 
   const prepared = await server.prepareTransaction(tx);
+  prepared.sign(keypair);
 
-  const signedXdr = await signTransaction(prepared.toXDR(), NETWORK_PASSPHRASE);
-  const signedTx = new Transaction(signedXdr, NETWORK_PASSPHRASE);
-
-  const sendResponse = await server.sendTransaction(signedTx);
-
+  const sendResponse = await server.sendTransaction(prepared);
   const txHash = sendResponse.hash;
 
   if (sendResponse.status === "PENDING") {
@@ -87,46 +81,62 @@ async function submitTx(contractId, method, args, publicKey) {
 }
 
 /**
- * Create an open game: commit P1's seed. Anyone can join with the session ID.
+ * Fund a testnet account via friendbot. Tolerates "already funded" errors.
  */
-export async function createGame(contractId, sessionId, player1, seedCommitHex, publicKey) {
+export async function fundAccount(publicKey) {
+  const url = `https://friendbot.stellar.org?addr=${publicKey}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text();
+    // Already funded is fine
+    if (text.includes("createAccountAlreadyExist") || text.includes("already exists")) {
+      return { funded: false, reason: "already exists" };
+    }
+    throw new Error(`Friendbot failed: ${res.status} ${text}`);
+  }
+  return { funded: true };
+}
+
+/**
+ * Create an open game: commit P1's seed.
+ */
+export async function createGame(contractId, sessionId, player1PublicKey, seedCommitHex, keypair) {
   const args = [
     nativeToScVal(sessionId, { type: "u32" }),
-    new Address(player1).toScVal(),
+    new Address(player1PublicKey).toScVal(),
     nativeToScVal(Buffer.from(seedCommitHex, "hex"), { type: "bytes" }),
   ];
-  return submitTx(contractId, "create_game", args, publicKey);
+  return submitTx(contractId, "create_game", args, keypair);
 }
 
 /**
  * Join an open game: set yourself as player2 and commit your seed.
  */
-export async function joinGame(contractId, sessionId, seedCommitHex, publicKey) {
+export async function joinGame(contractId, sessionId, seedCommitHex, keypair) {
   const args = [
     nativeToScVal(sessionId, { type: "u32" }),
-    new Address(publicKey).toScVal(),
+    new Address(keypair.publicKey()).toScVal(),
     nativeToScVal(Buffer.from(seedCommitHex, "hex"), { type: "bytes" }),
   ];
-  return submitTx(contractId, "join_game", args, publicKey);
+  return submitTx(contractId, "join_game", args, keypair);
 }
 
 /**
  * Reveal a seed on-chain.
  */
-export async function revealSeed(contractId, sessionId, seedHex, publicKey) {
+export async function revealSeed(contractId, sessionId, seedHex, keypair) {
   const args = [
     nativeToScVal(sessionId, { type: "u32" }),
-    new Address(publicKey).toScVal(),
+    new Address(keypair.publicKey()).toScVal(),
     nativeToScVal(Buffer.from(seedHex, "hex"), { type: "bytes" }),
   ];
-  return submitTx(contractId, "reveal_seed", args, publicKey);
+  return submitTx(contractId, "reveal_seed", args, keypair);
 }
 
 /**
  * Settle a game: submit ZK proof.
  */
-export async function settleGame(contractId, sessionId, proof, pubInputs, publicKey) {
-  // Encode Groth16Proof as ScvMap (alphabetically sorted keys)
+export async function settleGame(contractId, sessionId, proof, pubInputs, keypair) {
   const proofVal = xdr.ScVal.scvMap([
     new xdr.ScMapEntry({
       key: xdr.ScVal.scvSymbol("pi_a"),
@@ -142,7 +152,6 @@ export async function settleGame(contractId, sessionId, proof, pubInputs, public
     }),
   ]);
 
-  // Encode PublicInputs as ScvMap (alphabetically sorted keys)
   const pubInputsVal = xdr.ScVal.scvMap([
     new xdr.ScMapEntry({
       key: xdr.ScVal.scvSymbol("seed1"),
@@ -175,13 +184,13 @@ export async function settleGame(contractId, sessionId, proof, pubInputs, public
     proofVal,
     pubInputsVal,
   ];
-  return submitTx(contractId, "settle_game", args, publicKey);
+  return submitTx(contractId, "settle_game", args, keypair);
 }
 
 /**
  * Query game state (read-only simulation).
  */
-export async function getGame(contractId, sessionId, publicKey) {
+export async function getGameParsed(contractId, sessionId, publicKey) {
   const server = new rpc.Server(RPC_URL);
   const contract = new Contract(contractId);
   const account = await server.getAccount(publicKey);
@@ -195,21 +204,9 @@ export async function getGame(contractId, sessionId, publicKey) {
     .build();
 
   const simResponse = await server.simulateTransaction(tx);
-  if (simResponse.result) {
-    return simResponse.result.retval;
-  }
-  return null;
-}
+  if (!simResponse.result) return null;
 
-/**
- * Query game state and return a parsed JS object.
- * Returns null if game not found.
- */
-export async function getGameParsed(contractId, sessionId, publicKey) {
-  const scVal = await getGame(contractId, sessionId, publicKey);
-  if (!scVal) return null;
-
-  const native = scValToNative(scVal);
+  const native = scValToNative(simResponse.result.retval);
 
   const toHex = (buf) =>
     Array.from(new Uint8Array(buf))

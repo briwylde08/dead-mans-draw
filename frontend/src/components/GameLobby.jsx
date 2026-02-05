@@ -4,7 +4,7 @@ import { createGame, joinGame } from "../lib/soroban";
 import { startMatchmaking } from "../lib/matchmaking";
 import "./GameLobby.css";
 
-export default function GameLobby({ contractId, publicKey, onGameAction }) {
+export default function GameLobby({ contractId, publicKey, onGameAction, onActivity }) {
   const [mode, setMode] = useState(null); // "create" | "join" | "play"
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,6 +40,8 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
 
       if (!result.success) throw new Error(result.error);
 
+      if (onActivity) onActivity({ action: "Game Created", txHash: result.txHash, detail: `Session #${sessionId}` });
+
       onGameAction({
         type: "created",
         sessionId: parseInt(sessionId, 10),
@@ -71,6 +73,8 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
 
       if (!result.success) throw new Error(result.error);
 
+      if (onActivity) onActivity({ action: "Game Joined", txHash: result.txHash, detail: `Session #${sessionId}` });
+
       onGameAction({
         type: "joined",
         sessionId: parseInt(sessionId, 10),
@@ -97,6 +101,8 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
       const result = await createGame(contractId, sid, publicKey, commitHex, publicKey);
       if (!result.success) throw new Error(result.error);
 
+      if (onActivity) onActivity({ action: "Game Created", txHash: result.txHash, detail: `Session #${sid}` });
+
       // Store pending game data for when MATCHED arrives
       pendingGameRef.current = { sessionId: sid, seed, commitHex };
 
@@ -122,6 +128,8 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
       setMatchmakingStatus("Joining game on-chain...");
       const result = await joinGame(contractId, sid, commitHex, publicKey);
       if (!result.success) throw new Error(result.error);
+
+      if (onActivity) onActivity({ action: "Game Joined", txHash: result.txHash, detail: `Session #${sid}` });
 
       matchmakingRef.current.sendMessage({ type: "MATCHED", sessionId: sid });
       matchmakingRef.current.cancel();
@@ -218,7 +226,7 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
           <h3>{"\uD83C\uDFF4\u200D\u2620\uFE0F"} The Card Deck</h3>
           <p>There be 25 cards in the deck, shuffled by fate and chance:</p>
           <ul>
-            <li>{"\uD83E\uDD43"} <strong>Rum</strong> (8 cards) &mdash; Beats Skull &mdash; a drunk sailor fears no death.</li>
+            <li><img src="/images/rum-icon.png" alt="Rum" className="rules-icon" /> <strong>Rum</strong> (8 cards) &mdash; Beats Skull &mdash; a drunk sailor fears no death.</li>
             <li>{"\u2620\uFE0F"} <strong>Skull</strong> (8 cards) &mdash; Beats Backstabber &mdash; a sharp mind smells treachery.</li>
             <li>{"\uD83D\uDDE1\uFE0F"} <strong>Backstabber</strong> (8 cards) &mdash; Beats Rum &mdash; you never see the knife when you're drunk.</li>
             <li>{"\uD83D\uDDA4"} <strong>The Black Spot</strong> (1 card) &mdash; There's only one&hellip; and ye don't want it.</li>

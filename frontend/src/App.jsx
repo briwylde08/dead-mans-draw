@@ -5,6 +5,7 @@ import WaitingRoom from "./components/WaitingRoom";
 import GameBoard from "./components/GameBoard";
 import GameSettle from "./components/GameSettle";
 import GameResult from "./components/GameResult";
+import ActivityLog from "./components/ActivityLog";
 import { connectRelay } from "./lib/relay";
 
 const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || "";
@@ -24,6 +25,21 @@ export default function App() {
   const [publicKey, setPublicKey] = useState(null);
   const [gameState, setGameState] = useState(null);
   const [result, setResult] = useState(null);
+  const [activityLog, setActivityLog] = useState([]);
+
+  const addActivity = useCallback((entry) => {
+    setActivityLog((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        timestamp: new Date(),
+        status: "success",
+        txHash: null,
+        detail: null,
+        ...entry,
+      },
+    ]);
+  }, []);
 
   const shortAddr = publicKey
     ? `${publicKey.slice(0, 6)}...${publicKey.slice(-4)}`
@@ -57,6 +73,7 @@ export default function App() {
   const handleNewGame = useCallback(() => {
     setGameState(null);
     setResult(null);
+    setActivityLog([]);
     setStage(STAGES.LOBBY);
   }, []);
 
@@ -64,6 +81,7 @@ export default function App() {
     setPublicKey(null);
     setGameState(null);
     setResult(null);
+    setActivityLog([]);
     setStage(STAGES.IDLE);
   }, []);
 
@@ -153,6 +171,7 @@ export default function App() {
           contractId={CONTRACT_ID}
           publicKey={publicKey}
           onGameAction={handleGameAction}
+          onActivity={addActivity}
         />
       )}
 
@@ -163,6 +182,7 @@ export default function App() {
           gameState={gameState}
           onReady={handleWaitingReady}
           onCancel={handleNewGame}
+          onActivity={addActivity}
         />
       )}
 
@@ -181,6 +201,7 @@ export default function App() {
           publicKey={publicKey}
           gameState={gameState}
           onSettled={handleSettled}
+          onActivity={addActivity}
         />
       )}
 
@@ -191,6 +212,21 @@ export default function App() {
           onNewGame={handleNewGame}
         />
       )}
+
+      {stage !== STAGES.IDLE && (
+        <ActivityLog
+          entries={activityLog}
+          contractId={CONTRACT_ID}
+          publicKey={publicKey}
+          opponentKey={gameState?.opponentKey || null}
+        />
+      )}
+
+      <footer className="app-footer">
+        <a href="https://github.com/briwylde08/dead-mans-draw" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
+      </footer>
     </div>
   );
 }

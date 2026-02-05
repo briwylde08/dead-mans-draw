@@ -175,3 +175,9 @@
 .game-rules strong {
   color: var(--color-bone);
 }
+
+.rules-icon {
+  height: 1.2em;
+  vertical-align: middle;
+  margin-right: 0.1rem;
+}

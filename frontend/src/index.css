@@ -383,3 +383,22 @@ textarea:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
+
+/* ── Footer ── */
+
+.app-footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(230, 221, 200, 0.1);
+  font-size: 0.85rem;
+}
+
+.app-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  color: var(--color-gold-light);
+}
