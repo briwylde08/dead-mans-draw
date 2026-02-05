@@ -1,0 +1,12 @@
+{
+  "name": "dead-mans-draw-relay",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "dependencies": {
+    "partykit": "^0.0.108"
+  }
+}

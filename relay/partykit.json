@@ -1,0 +1,6 @@
+{
+  "name": "dead-mans-draw-relay",
+  "main": "src/server.ts",
+  "port": 1999,
+  "compatibilityDate": "2024-09-23"
+}

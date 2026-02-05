@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   simulateFullGame,
   CARD_TYPE_NAMES,
@@ -6,16 +6,46 @@ import {
 } from "../lib/gameSimulator";
 import "./GameBoard.css";
 
-export default function GameBoard({ gameState, onGameComplete }) {
+const FALLBACK_DELAY = 2500; // Timer fallback when relay is unavailable
+
+// Flavor text for matchups: key = "type1-type2" (sorted for ties)
+const MATCHUP_FLAVOR = {
+  "0-1": "Rum dulls the fear of death.",
+  "1-2": "A clever mind senses the knife coming.",
+  "2-0": "You never see the blade when you're drunk.",
+  "0-0": "We can\u2019t both be drunk\u2026 or can we?",
+  "1-1": "Two heads don\u2019t always think better than one.",
+  "2-2": "Both were waiting for the other to turn around.",
+};
+
+function getRoundFlavor(type1, type2) {
+  if (type1 === 3 || type2 === 3) return "That\u2019s unfortunate.";
+  const key1 = `${type1}-${type2}`;
+  const key2 = `${type2}-${type1}`;
+  return MATCHUP_FLAVOR[key1] || MATCHUP_FLAVOR[key2] || "";
+}
+
+export default function GameBoard({ gameState, onGameComplete, relay, onRelayMessage }) {
   const { sessionId, seed, playerRole, opponentSeed } = gameState;
   const [game, setGame] = useState(null);
   const [roundIndex, setRoundIndex] = useState(0);
-  const [phase, setPhase] = useState("ready"); // ready | drawn | revealed
+  const [myDrawn, setMyDrawn] = useState(false);
+  const [oppDrawn, setOppDrawn] = useState(false);
   const [error, setError] = useState(null);
   const initRef = useRef(false);
-  const revealTimer = useRef(null);
+  const fallbackTimer = useRef(null);
 
-  const REVEAL_DELAY = 2500;
+  const bothDrawn = myDrawn && oppDrawn;
+
+  // Derive phase from draw states
+  // ready: neither drawn | drawn: only me | opp_drawn: only opponent | revealed: both
+  const phase = bothDrawn
+    ? "revealed"
+    : myDrawn
+    ? "drawn"
+    : oppDrawn
+    ? "opp_drawn"
+    : "ready";
 
   // Auto-start game simulation when component mounts with opponent seed
   useEffect(() => {
@@ -30,27 +60,71 @@ export default function GameBoard({ gameState, onGameComplete }) {
       .catch((err) => setError(err.message));
   }, [opponentSeed, seed, playerRole, sessionId]);
 
-  // Cleanup reveal timer on unmount
+  // Handle relay messages
+  const handleRelayMessage = useCallback(
+    (data) => {
+      if (data.type === "DRAW" && data.round === roundIndex) {
+        setOppDrawn(true);
+      }
+      if (data.type === "NEXT_ROUND") {
+        setRoundIndex((i) => i + 1);
+        setMyDrawn(false);
+        setOppDrawn(false);
+      }
+      // Replay events from STATE_SNAPSHOT on reconnect
+      if (data.type === "STATE_SNAPSHOT" && Array.isArray(data.events)) {
+        for (const raw of data.events) {
+          try {
+            const evt = typeof raw === "string" ? JSON.parse(raw) : raw;
+            if (evt.type === "DRAW" && evt.round === roundIndex) {
+              setOppDrawn(true);
+            }
+          } catch {
+            // skip
+          }
+        }
+      }
+    },
+    [roundIndex]
+  );
+
+  // Register relay message handler
   useEffect(() => {
+    if (onRelayMessage) onRelayMessage(handleRelayMessage);
+  }, [onRelayMessage, handleRelayMessage]);
+
+  // Fallback: if relay is unavailable or disconnected, auto-reveal after delay
+  const relayConnected = relay?.socket?.readyState === WebSocket.OPEN;
+
+  useEffect(() => {
+    if (myDrawn && !oppDrawn && !relayConnected) {
+      const delay = game?.rounds[roundIndex]?.gameOver ? 0 : FALLBACK_DELAY;
+      fallbackTimer.current = setTimeout(() => {
+        setOppDrawn(true);
+      }, delay);
+    }
     return () => {
-      if (revealTimer.current) clearTimeout(revealTimer.current);
+      if (fallbackTimer.current) clearTimeout(fallbackTimer.current);
     };
-  }, []);
+  }, [myDrawn, oppDrawn, relayConnected, roundIndex, game]);
 
   const handleDrawYourCard = () => {
-    setPhase("drawn");
+    setMyDrawn(true);
 
-    // Skip delay if this round ends the game (blackspot or final score)
-    const delay = round?.gameOver ? 0 : REVEAL_DELAY;
-
-    revealTimer.current = setTimeout(() => {
-      setPhase("revealed");
-    }, delay);
+    // Send DRAW event via relay
+    if (relay) {
+      relay.send({ type: "DRAW", round: roundIndex });
+    }
   };
 
   const handleNextRound = () => {
+    // Send NEXT_ROUND via relay
+    if (relay) {
+      relay.send({ type: "NEXT_ROUND" });
+    }
     setRoundIndex((i) => i + 1);
-    setPhase("ready");
+    setMyDrawn(false);
+    setOppDrawn(false);
   };
 
   const handleSettle = () => {
@@ -59,7 +133,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
 
   // Current round data
   const round = game?.rounds[roundIndex] ?? null;
-  const gameFinished = phase === "revealed" && round?.gameOver;
+  const gameFinished = bothDrawn && round?.gameOver;
 
   // Your card / opponent card based on playerRole
   const yourType = round
@@ -77,7 +151,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
   // Scores: update only after opponent card is revealed
   const visibleScore = () => {
     if (!game) return [0, 0];
-    if (phase === "revealed") return [round.scoreP1, round.scoreP2];
+    if (bothDrawn) return [round.scoreP1, round.scoreP2];
     if (roundIndex > 0) {
       const prev = game.rounds[roundIndex - 1];
       return [prev.scoreP1, prev.scoreP2];
@@ -89,7 +163,7 @@ export default function GameBoard({ gameState, onGameComplete }) {
   const oppScore = playerRole === 1 ? sp2 : sp1;
 
   // History: show fully-revealed rounds only
-  const historyEnd = phase === "revealed" ? roundIndex + 1 : roundIndex;
+  const historyEnd = bothDrawn ? roundIndex + 1 : roundIndex;
 
   // --- Loading / error state ---
   if (!game) {
@@ -136,25 +210,25 @@ export default function GameBoard({ gameState, onGameComplete }) {
       <div className="card-area">
         <CardSlot
           type={yourType}
-          revealed={phase === "drawn" || phase === "revealed"}
-          isWinner={phase === "revealed" && effectiveWinner === playerRole}
+          revealed={myDrawn}
+          isWinner={bothDrawn && effectiveWinner === playerRole}
           label="You"
         />
         <CardSlot
           type={oppType}
-          revealed={phase === "revealed"}
+          revealed={oppDrawn}
           isWinner={
-            phase === "revealed" &&
+            bothDrawn &&
             effectiveWinner !== 0 &&
             effectiveWinner !== playerRole
           }
-          waiting={phase === "drawn"}
+          waiting={myDrawn && !oppDrawn}
           label="Adversary"
         />
       </div>
 
       {/* Phase-specific text */}
-      {phase === "drawn" && yourType !== null && (
+      {myDrawn && !bothDrawn && yourType !== null && (
         <div className="round-result draw-tease">
           You drew <strong>{CARD_TYPE_NAMES[yourType]}</strong>
           {yourType === 3
@@ -167,7 +241,15 @@ export default function GameBoard({ gameState, onGameComplete }) {
         </div>
       )}
 
-      {phase === "revealed" && round && (
+      {!myDrawn && oppDrawn && (
+        <div className="round-result draw-tease">
+          <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+            Your adversary has drawn. Your turn&hellip;
+          </span>
+        </div>
+      )}
+
+      {bothDrawn && round && (
         <RoundResult
           round={round}
           roundNum={roundIndex + 1}
@@ -175,15 +257,20 @@ export default function GameBoard({ gameState, onGameComplete }) {
         />
       )}
 
+      {/* Flavor text */}
+      {bothDrawn && round && (
+        <p className="round-flavor">{getRoundFlavor(round.type1, round.type2)}</p>
+      )}
+
       {/* Actions */}
       <div className="board-actions">
-        {phase === "ready" && (
+        {!myDrawn && (
           <button className="btn btn-primary" onClick={handleDrawYourCard}>
             Draw Yer Card
           </button>
         )}
 
-        {phase === "revealed" && !gameFinished && (
+        {bothDrawn && !gameFinished && (
           <button className="btn btn-primary" onClick={handleNextRound}>
             Next Round
           </button>
@@ -268,7 +355,7 @@ function CardSlot({ type, revealed, isWinner, waiting, label }) {
 
   const isBlack = type === 3;
   const typeClass = ["rum", "skull", "cutlass", "blackspot"][type];
-  const cardImage = ["/images/rum1.png", "/images/skull1.png", "/images/cutlass1.png", null][type];
+  const cardImage = ["/images/rum1.png", "/images/skull1.png", "/images/cutlass1.png", "/images/black-spot.png"][type];
 
   return (
     <div

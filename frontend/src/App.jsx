@@ -1,10 +1,11 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import ConnectWallet from "./components/ConnectWallet";
 import GameLobby from "./components/GameLobby";
 import WaitingRoom from "./components/WaitingRoom";
 import GameBoard from "./components/GameBoard";
 import GameSettle from "./components/GameSettle";
 import GameResult from "./components/GameResult";
+import { connectRelay } from "./lib/relay";
 
 const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || "";
 
@@ -65,6 +66,41 @@ export default function App() {
     setResult(null);
     setStage(STAGES.IDLE);
   }, []);
+
+  // Relay connection for real-time sync
+  const relayRef = useRef(null);
+  const relayHandlerRef = useRef(null);
+
+  // Connect relay when entering WAITING, disconnect when leaving PLAYING
+  useEffect(() => {
+    const needsRelay =
+      (stage === STAGES.WAITING || stage === STAGES.PLAYING) && gameState;
+
+    if (needsRelay && !relayRef.current) {
+      relayRef.current = connectRelay(
+        gameState.sessionId,
+        gameState.playerRole,
+        (data) => {
+          // Forward to current handler (set by GameBoard)
+          if (relayHandlerRef.current) relayHandlerRef.current(data);
+        }
+      );
+    }
+
+    if (!needsRelay && relayRef.current) {
+      relayRef.current.close();
+      relayRef.current = null;
+      relayHandlerRef.current = null;
+    }
+
+    return () => {
+      if (!needsRelay && relayRef.current) {
+        relayRef.current.close();
+        relayRef.current = null;
+        relayHandlerRef.current = null;
+      }
+    };
+  }, [stage, gameState]);
 
   const [copied, setCopied] = useState(false);
   const copyTimeout = useRef(null);
@@ -133,6 +169,8 @@ export default function App() {
         <GameBoard
           gameState={gameState}
           onGameComplete={handleGamePlayed}
+          relay={relayRef.current}
+          onRelayMessage={(handler) => { relayHandlerRef.current = handler; }}
         />
       )}
 

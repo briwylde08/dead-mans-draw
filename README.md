@@ -2,14 +2,14 @@
 
 **The plank's right there. And somebody's swimming home.**
 
-A provably fair pirate card game on [Stellar Soroban](https://soroban.stellar.org/) with zero-knowledge proofs. No trusted server, no hidden decks — just cryptography and cutthroats.
+A pirate card game on [Stellar](https://soroban.stellar.org/) with zero-knowledge proofs.
 
 ## How to Play
 
 ### What You Need
 
 - [Freighter wallet](https://www.freighter.app/) browser extension
-- A Stellar testnet account with test XLM ([friendbot](https://friendbot.stellar.org/) can fund you)
+- A Stellar Testnet account with test XLM ([friendbot](https://friendbot.stellar.org/) can fund you)
 
 ### Game Flow
 

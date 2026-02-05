@@ -299,10 +299,20 @@
   }
 }
 
+.round-flavor {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-bone);
+  font-size: 1.25rem;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 /* ── Actions ── */
 
 .board-actions {
   text-align: center;
+  margin-top: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
