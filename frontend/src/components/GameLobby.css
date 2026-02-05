@@ -44,6 +44,10 @@
   gap: 1rem;
 }
 
+.lobby-buttons-spaced {
+  margin-top: 0.75rem;
+}
+
 .lobby-buttons .btn {
   flex: 1;
   text-align: center;
@@ -51,10 +55,42 @@
   padding: 0.85rem 1.4rem;
 }
 
+.btn-hint {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.btn-play {
+  font-size: 1.2rem !important;
+  padding: 1rem !important;
+}
+
+.lobby-or {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 1rem 0 0.75rem;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
 .lobby-actions {
   display: flex;
   gap: 0.75rem;
   margin-top: 0.5rem;
+}
+
+/* ── Matchmaking ── */
+
+.matchmaking-status {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.matchmaking-text {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.75rem;
 }
 
 .lobby-note {

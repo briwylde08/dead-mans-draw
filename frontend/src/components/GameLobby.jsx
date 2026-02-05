@@ -1,13 +1,26 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { computeSeedCommitment, generateRandomSeed } from "../lib/prover";
 import { createGame, joinGame } from "../lib/soroban";
+import { startMatchmaking } from "../lib/matchmaking";
 import "./GameLobby.css";
 
 export default function GameLobby({ contractId, publicKey, onGameAction }) {
-  const [mode, setMode] = useState(null); // "create" or "join"
+  const [mode, setMode] = useState(null); // "create" | "join" | "play"
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [matchmakingStatus, setMatchmakingStatus] = useState("");
+  const matchmakingRef = useRef(null);
+  const pendingGameRef = useRef(null);
+
+  // Cleanup matchmaking on unmount
+  useEffect(() => {
+    return () => {
+      if (matchmakingRef.current) {
+        matchmakingRef.current.cancel();
+      }
+    };
+  }, []);
 
   const handleCreate = async () => {
     if (!sessionId) return;
@@ -72,6 +85,111 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
     }
   };
 
+  // ── Matchmaking ──
+
+  const doHostGame = async () => {
+    try {
+      const seed = generateRandomSeed();
+      const commitHex = await computeSeedCommitment(seed);
+      const sid = Math.floor(Math.random() * 2_000_000_000) + 1;
+
+      setMatchmakingStatus("Creating game on-chain...");
+      const result = await createGame(contractId, sid, publicKey, commitHex, publicKey);
+      if (!result.success) throw new Error(result.error);
+
+      // Store pending game data for when MATCHED arrives
+      pendingGameRef.current = { sessionId: sid, seed, commitHex };
+
+      setMatchmakingStatus("Game created! Waiting for opponent...");
+      matchmakingRef.current.sendMessage({
+        type: "HOSTING",
+        sessionId: sid,
+        publicKey,
+        ts: Date.now(),
+      });
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      if (matchmakingRef.current) matchmakingRef.current.cancel();
+    }
+  };
+
+  const doJoinGame = async (sid) => {
+    try {
+      const seed = generateRandomSeed();
+      const commitHex = await computeSeedCommitment(seed);
+
+      setMatchmakingStatus("Joining game on-chain...");
+      const result = await joinGame(contractId, sid, commitHex, publicKey);
+      if (!result.success) throw new Error(result.error);
+
+      matchmakingRef.current.sendMessage({ type: "MATCHED", sessionId: sid });
+      matchmakingRef.current.cancel();
+      matchmakingRef.current = null;
+
+      onGameAction({
+        type: "joined",
+        sessionId: sid,
+        seed,
+        seedCommitHex: commitHex,
+        playerRole: 2,
+      });
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      if (matchmakingRef.current) matchmakingRef.current.cancel();
+    }
+  };
+
+  const handlePlay = () => {
+    setMode("play");
+    setError(null);
+    setLoading(true);
+    setMatchmakingStatus("Looking for an opponent...");
+
+    matchmakingRef.current = startMatchmaking(publicKey, {
+      onHosting: () => {
+        doHostGame();
+      },
+      onFoundHost: ({ sessionId: sid }) => {
+        doJoinGame(sid);
+      },
+      onMatched: () => {
+        // Host side: opponent confirmed, proceed to game
+        const pg = pendingGameRef.current;
+        if (!pg) return;
+        if (matchmakingRef.current) {
+          matchmakingRef.current.cancel();
+          matchmakingRef.current = null;
+        }
+        onGameAction({
+          type: "created",
+          sessionId: pg.sessionId,
+          seed: pg.seed,
+          seedCommitHex: pg.commitHex,
+          playerRole: 1,
+        });
+      },
+      onError: (err) => {
+        setError(err.message);
+        setLoading(false);
+      },
+    });
+  };
+
+  const handleCancelMatchmaking = () => {
+    if (matchmakingRef.current) {
+      matchmakingRef.current.cancel();
+      matchmakingRef.current = null;
+    }
+    pendingGameRef.current = null;
+    setMode(null);
+    setLoading(false);
+    setError(null);
+  };
+
+  // ── Render: lobby home ──
+
   if (!mode) {
     return (
       <>
@@ -79,7 +197,13 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
           <h2>Choose Yer Path</h2>
           <p className="lobby-subtitle">What'll it be, captain?</p>
           <div className="lobby-buttons">
-            <button className="btn btn-primary" onClick={() => setMode("create")}>
+            <button className="btn btn-primary btn-play" onClick={handlePlay}>
+              Play
+            </button>
+          </div>
+          <p className="lobby-or">or play a private match <span className="btn-hint">(create and share a session ID, or join an existing one)</span></p>
+          <div className="lobby-buttons">
+            <button className="btn btn-secondary" onClick={() => setMode("create")}>
               Create Game
             </button>
             <button className="btn btn-secondary" onClick={() => setMode("join")}>
@@ -124,6 +248,33 @@ export default function GameLobby({ contractId, publicKey, onGameAction }) {
       </>
     );
   }
+
+  // ── Render: matchmaking ──
+
+  if (mode === "play") {
+    return (
+      <div className="game-lobby">
+        <h2>Searching for Opponent...</h2>
+        <div className="matchmaking-status">
+          <div className="spinner" />
+          <p className="matchmaking-text">{matchmakingStatus}</p>
+          {error && <p className="error-text">{error}</p>}
+        </div>
+        <div className="lobby-actions">
+          {error && (
+            <button className="btn btn-secondary" onClick={handlePlay}>
+              Retry
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={handleCancelMatchmaking}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: create / join ──
 
   return (
     <div className="game-lobby">
