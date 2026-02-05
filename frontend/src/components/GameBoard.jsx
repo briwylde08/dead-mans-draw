@@ -350,7 +350,7 @@ function CardSlot({ type, revealed, isWinner, waiting, label }) {
   if (!revealed || type === null || type === undefined) {
     return (
       <div className={`card card-back ${waiting ? "card-waiting" : ""}`}>
-        <div className="card-back-pattern" />
+        <img className="card-back-image" src="/images/back-card.png" alt="Card back" />
         <div className="card-player-label">{label}</div>
       </div>
     );
