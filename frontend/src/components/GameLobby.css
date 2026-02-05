@@ -66,24 +66,47 @@
 
 /* ── Rules ── */
 
+.lobby-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2.5rem -7rem;
+  color: var(--color-bone);
+  opacity: 0.4;
+  font-size: 1.1rem;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-bone);
+}
+
 .game-rules {
-  margin-top: 2rem;
+  margin-top: 0;
   padding: 1.5rem;
   border: 1px solid rgba(230, 221, 200, 0.15);
   border-radius: var(--radius);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.7;
-  max-width: 680px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: -5rem;
+  margin-right: -5rem;
+}
+
+.game-rules h2 {
+  color: var(--color-bone);
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
 .game-rules h3 {
   color: var(--color-bone);
   font-size: 1.15rem;
+  margin-top: 2.5rem;
   margin-bottom: 1rem;
-  text-align: center;
+  text-align: left;
 }
 
 .rules-aside {
@@ -95,7 +118,7 @@
 .game-rules h4 {
   color: var(--color-bone);
   font-size: 1rem;
-  margin-top: 1.25rem;
+  margin-top: 3.5rem;
   margin-bottom: 0.5rem;
 }
 
