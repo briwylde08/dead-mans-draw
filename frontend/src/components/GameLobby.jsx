@@ -223,29 +223,29 @@ export default function GameLobby({ contractId, publicKey, onGameAction, onActiv
         <div className="game-rules">
           <h2>The Code</h2>
 
-          <h3>{"\uD83C\uDFF4\u200D\u2620\uFE0F"} The Card Deck</h3>
+          <h3><img src="/images/deck-icon.png" alt="The Card Deck" className="rules-icon" /> The Card Deck</h3>
           <p>There be 25 cards in the deck, shuffled by fate and chance:</p>
           <ul>
             <li><img src="/images/rum-icon.png" alt="Rum" className="rules-icon" /> <strong>Rum</strong> (8 cards) &mdash; Beats Skull &mdash; a drunk sailor fears no death.</li>
-            <li>{"\u2620\uFE0F"} <strong>Skull</strong> (8 cards) &mdash; Beats Backstabber &mdash; a sharp mind smells treachery.</li>
-            <li>{"\uD83D\uDDE1\uFE0F"} <strong>Backstabber</strong> (8 cards) &mdash; Beats Rum &mdash; you never see the knife when you're drunk.</li>
-            <li>{"\uD83D\uDDA4"} <strong>The Black Spot</strong> (1 card) &mdash; There's only one&hellip; and ye don't want it.</li>
+            <li><img src="/images/skull-icon.png" alt="Skull" className="rules-icon" /> <strong>Skull</strong> (8 cards) &mdash; Beats Backstabber &mdash; a sharp mind smells treachery.</li>
+            <li><img src="/images/backstabber-icon.png" alt="Backstabber" className="rules-icon" /> <strong>Backstabber</strong> (8 cards) &mdash; Beats Rum &mdash; you never see the knife when you're drunk.</li>
+            <li><img src="/images/black-spot-icon.png" alt="Black Spot" className="rules-icon" /> <strong>The Black Spot</strong> (1 card) &mdash; There's only one&hellip; and ye don't want it.</li>
           </ul>
 
-          <h3>{"\u2694\uFE0F"} Playing a Round</h3>
+          <h3><img src="/images/playing-icon.png" alt="Playing a Round" className="rules-icon" /> Playing a Round</h3>
           <p> - Each round, both pirates draw a card and reveal it.</p>
           <p> - If yer card beats yer opponent's, you win the round.</p>
           <p> - If the cards match, no one wins. Ye glare at each other and drink anyway.</p>
           <p> - If someone draws the Black Spot&hellip; well&hellip;</p>
 
-          <h3>{"\uD83D\uDDA4"} The Black Spot</h3>
+          <h3><img src="/images/black-spot-icon.png" alt="Black Spot" className="rules-icon" /> The Black Spot</h3>
           <p>If ye draw it:</p>
           <ul>
             <li> - The game ends immediately.</li>
             <li> - Ye lose.</li>
           </ul>
 
-          <h3>{"\uD83C\uDFC6"} Winning the Game</h3>
+          <h3><img src="/images/trophy-icon.png" alt="Winning the Game" className="rules-icon" /> Winning the Game</h3>
           <p> - The first pirate to win 3 rounds claims victory and bragging rights.</p>
           <p> - If the deck runs dry before anyone hits 3 wins:</p>
           <ul>
