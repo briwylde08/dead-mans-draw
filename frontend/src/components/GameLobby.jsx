@@ -87,7 +87,11 @@ export default function GameLobby({ contractId, publicKey, onGameAction, onActiv
         playerRole: 2,
       });
     } catch (err) {
-      setError(err.message);
+      if (err.message && (err.message.includes("SessionNotFound") || err.message.includes("#1"))) {
+        setError("Sorry, that game doesn't exist. Either input an existing Session ID or Create a New Game.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
