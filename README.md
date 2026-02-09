@@ -2,6 +2,8 @@
 
 > **Disclaimer:** This project is purely experimental and a test. It is not intended for production use.
 
+> **Live Demo:** https://dist-cyan-pi.vercel.app
+
 **The plank's right there. And somebody's swimming home.**
 
 A pirate card game on [Stellar](https://soroban.stellar.org/) with zero-knowledge proofs.
